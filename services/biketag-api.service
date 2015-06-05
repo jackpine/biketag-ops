@@ -1,0 +1,14 @@
+[Unit]
+Description=BikeTag API
+After=biketag-db.service
+After=docker.service
+Requires=docker.service
+Requires=biketag-db.service
+
+[Service]
+TimeoutStartSec=0
+ExecStartPre=-/usr/bin/docker kill biketag-api
+ExecStart=/usr/bin/docker start biketag-api
+
+[Install]
+WantedBy=multi-user.target
