@@ -1,6 +1,6 @@
 Copy the systemd service files to make sure the containers start at boot.
 
-    sudo cp services/* /etc/systemd/service
+    sudo cp services/* /etc/systemd/system
     sudo systemctl enable biketag-db.service
     sudo systemctl start biketag-db.service
     sudo systemctl enable biketag-api.service

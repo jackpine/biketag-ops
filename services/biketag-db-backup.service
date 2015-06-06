@@ -1,0 +1,7 @@
+[Unit]
+Description=BikeTag DB Backup
+
+[Service]
+TimeoutStartSec=0
+ExecStart=/home/core/deployment/bin/archive-db 
+
