@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+function usage {
+  cat <<EOS
+Usage: ./deploy <connection-string>
+ e.g.: ./deploy core@my-host.com
+EOS
+}
+
 function provision {
   echo "deploying database container... you'll see an error if db has already been deployed. Don't worry about it."
   docker run --name biketag-db -p 25432:5432 -d mdillon/postgis
@@ -19,10 +26,7 @@ if [ "$#" == 1 ]
 then
   echo "remote deploying to $1"
   ssh $1 "$(typeset -f); provision"
-elif [ "$#" == 1 ]
-then
-  echo "local deploy"
-  provision
 else
-  echo "Usage ./deploy core@my-host.com"
+  usage
+  exit 1
 fi
