@@ -8,9 +8,9 @@ Copy the systemd service files to make sure the containers start at boot.
     sudo systemctl enable biketag-db-backup.timer
     sudo systemctl start biketag-db-backup.timer
 
-Decrypt and copy the env file into the biketag-api container. I literally used the system clipboard.
+Decrypt and copy the env file into the biketag-api container. something like this should work
 
-    docker exec -ti biketag-api bash -l
+    docker exec -i biketag-api-dev bash -c "cat - > ~app/biketag-api/.env" < decrypted_env
 
 Then restart nginx
 
