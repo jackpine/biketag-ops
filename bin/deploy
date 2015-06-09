@@ -1,6 +1,21 @@
 #!/usr/bin/env bash
 
+function usage {
+  cat <<EOS
+Usage: ./deploy <connection-string> <environment>
+ e.g.: ./deploy core@api.biketag-staging.jackpine.me staging
+EOS
+}
+
 function provision {
+  ENVIRONMENT=$1
+
+  if [ -z $ENVIRONMENT ]
+  then
+    usage
+    exit 1
+  fi
+
   echo "deploying database container... you'll see an error if db has already been deployed. Don't worry about it."
   docker run --name biketag-db -p 25432:5432 -d mdillon/postgis
 
@@ -13,16 +28,17 @@ function provision {
 
   echo "starting new api container"
   docker run --name biketag-api --link biketag-db:biketag-db -p 80:80 -d jackpine/biketag-api
+  docker exec -i biketag-api bash -c "cat - > ~app/biketag-api/.env" < ~/biketag-ops/secrets/biketag-$ENVIRONMENT-api.env
 }
 
-if [ "$#" == 1 ]
+if [ "$#" == 2 ]
 then
-  echo "remote deploying to $1"
-  ssh $1 "$(typeset -f); provision"
-elif [ "$#" == 1 ]
-then
-  echo "local deploy"
-  provision
+  HOST=$1
+  ENVIRONMENT=$2
+
+  echo "remote deploying ${ENVIRONMENT} to ${HOST}"
+  ssh $1 "$(typeset -f); provision $ENVIRONMENT"
 else
-  echo "Usage ./deploy core@my-host.com"
+  usage
+  exit 1
 fi
