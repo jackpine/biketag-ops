@@ -20,6 +20,8 @@ then
   exit 1
 fi
 
+API_CONTAINER=biketag-api-dev
+
 DATABASE_TO_REPLACE=biketag_development
 if [ -z $DATABASE_TO_REPLACE ]
 then
@@ -29,11 +31,11 @@ then
 fi
 
 echo "dropping ${DATABASE_TO_REPLACE}"
-docker stop biketag-api-dev
+docker stop $API_CONTAINER
 
 docker exec -ti biketag-db dropdb --username postgres $DATABASE_TO_REPLACE
 docker exec -ti biketag-db createdb --username postgres $DATABASE_TO_REPLACE
 docker exec -i biketag-db psql -d $DATABASE_TO_REPLACE --username postgres < $DATABASE_BACKUP_FILE
 
-echo "restarting biketag-api-dev"
-docker start biketag-api-dev
+echo "restarting $API_CONTAINER"
+docker start $API_CONTAINER
