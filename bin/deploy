@@ -27,8 +27,11 @@ function provision {
   docker rm biketag-api
 
   echo "starting new api container"
-  docker run --name biketag-api --link biketag-db:biketag-db -p 80:80 -d jackpine/biketag-api
+  docker run --name biketag-api --link biketag-db:biketag-db -p 443:443 -p 80:80 -d jackpine/biketag-api
   docker exec -i biketag-api bash -c "cat - > ~app/biketag-api/.env" < ~/biketag-ops/secrets/biketag-$ENVIRONMENT-api.env
+  docker stop biketag-api
+  docker start biketag-api
+  ~/biketag-ops/bin/install-ssl
 }
 
 if [ "$#" == 2 ]
