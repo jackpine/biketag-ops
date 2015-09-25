@@ -3,5 +3,5 @@ set -x
 BIN_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 TARGET=$BIN_DIR/../../api/public/uploads
 
-s3cmd sync s3://biketag-production/spots $TARGET/spots
-s3cmd sync s3://biketag-production/guesses $TARGET/guesses
+s3cmd sync s3://biketag-production/spots $TARGET
+s3cmd sync s3://biketag-production/guesses $TARGET
