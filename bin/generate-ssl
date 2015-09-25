@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+function usage {
+  cat <<EOS
+Usage: ./generate-ssl
+EOS
+}
+
+openssl req -new -newkey rsa:2048 -nodes -keyout api_biketag_jackpine_me.key -out api_biketag_jackpine_me.csr
