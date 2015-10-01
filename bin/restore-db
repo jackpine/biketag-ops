@@ -23,6 +23,7 @@ fi
 API_CONTAINER=biketag-api-dev
 
 DATABASE_TO_REPLACE=biketag_development
+#DATABASE_TO_REPLACE=biketag_production
 if [ -z $DATABASE_TO_REPLACE ]
 then
   echo "DATABASE_TO_REPLACE required."
