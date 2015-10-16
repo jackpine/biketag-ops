@@ -16,6 +16,9 @@ function provision {
     exit 1
   fi
 
+  echo "Ensure latest ops pacakge is installed"
+  (cd ~/biketag-ops && git pull)
+
   docker ps -a | grep biketag-db > /dev/null
   DB_ALREADY_DEPLOYED=$?
   if [ $DB_ALREADY_DEPLOYED -eq 0 ]
