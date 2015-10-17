@@ -47,8 +47,11 @@ function provision {
   docker stop biketag-api
   docker start biketag-api
 
-  echo "Installing SSL certificates"
-  ~/biketag-ops/bin/install-ssl
+  if [ $ENVIRONMENT == "production" ]
+  then
+    echo "Installing SSL certificates"
+    ~/biketag-ops/bin/install-ssl
+  fi
 }
 
 if [ "$#" == 2 ]
