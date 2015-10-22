@@ -1,11 +1,17 @@
 #!/usr/bin/env bash
 
+SCRIPT_NAME=`basename "$0"`
+BIN_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+
 function usage {
   cat <<EOS
-Usage: ./deploy <connection-string> <environment>
- e.g.: ./deploy core@api.biketag-staging.jackpine.me staging
+Usage: ./$SCRIPT_NAME <connection-string> <environment>
+ e.g.: ./$SCRIPT_NAME core@api.biketag-staging.jackpine.me staging
 EOS
 }
+
+# Must be absolute path
+REMOTE_OPS_DIR=/home/core/biketag-ops
 
 function provision {
   ENVIRONMENT=$1
@@ -16,18 +22,32 @@ function provision {
     exit 1
   fi
 
-  echo "Ensure latest ops pacakge is installed"
-  (cd ~/biketag-ops && git pull)
+  REMOTE_OPS_DIR=$2
+  if [ -z $REMOTE_OPS_DIR ]
+  then
+    echo "Unable to determine REMOTE_OPS_DIR."
+    exit 1
+  fi
+
+  ENV_FILE_PATH=$3
+  if [ -z $ENV_FILE_PATH ]
+  then
+    echo "Unable to determine ENV_FILE_PATH."
+    exit 1
+  fi
+
+  echo "Ensuring latest ops pacakge is installed..."
+  (cd $REMOTE_OPS_DIR && git pull)
 
   docker ps -a | grep biketag-db > /dev/null
   DB_ALREADY_DEPLOYED=$?
   if [ $DB_ALREADY_DEPLOYED -eq 0 ]
   then
     echo "Database previously deployed."
-    docker start biketag-db
+    docker start biketag-db > /dev/null
   else
-    echo "Deploying new database container."
-    docker run --name biketag-db -d mdillon/postgis
+    echo "Deploying new database container. If this isn't a first time deploy, something is fishy."
+    docker run --name biketag-db -d mdillon/postgis > /dev/null
   fi
 
   echo "Pulling latest api container."
@@ -37,27 +57,30 @@ function provision {
   docker stop biketag-api > /dev/null
   docker rm biketag-api > /dev/null
 
-  echo "Starting new api container."
+  echo "Running new api container."
   docker run --name biketag-api --link biketag-db:biketag-db -p 443:443 -p 80:80 -d jackpine/biketag-api
 
   echo "Copying config."
-  docker exec -i biketag-api bash -c "cat - > ~app/biketag-api/.env" < ~/biketag-ops/secrets/biketag-$ENVIRONMENT-api.env
+  docker exec -i biketag-api bash -c "cat - > ~app/biketag-api/.env" < $REMOTE_OPS_DIR/$ENV_FILE_PATH
+
+  echo "Installing SSL certificates"
+  $REMOTE_OPS_DIR/bin/install-ssl
 
   echo "Restarting container."
   docker stop biketag-api
   docker start biketag-api
 
-  echo "Installing SSL certificates"
-  ~/biketag-ops/bin/install-ssl
 }
 
 if [ "$#" == 2 ]
 then
   HOST=$1
   ENVIRONMENT=$2
-
+  ENV_FILE_PATH=secrets/biketag-$ENVIRONMENT-api.env
   echo "Remote deploying ${ENVIRONMENT} to ${HOST}."
-  ssh $1 "$(typeset -f); provision $ENVIRONMENT"
+
+  scp $BIN_DIR/../$ENV_FILE_PATH $HOST:$REMOTE_OPS_DIR/$ENV_FILE_PATH
+  ssh -A $HOST "$(typeset -f); provision $ENVIRONMENT $REMOTE_OPS_DIR $ENV_FILE_PATH"
 else
   usage
   exit 1
