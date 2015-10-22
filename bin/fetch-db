@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+SCRIPT_NAME=`basename "$0"`
+
+function usage {
+  cat <<EOS
+Usage: ./$SCRIPT_NAME <environment>
+ e.g.: ./$SCRIPT_NAME staging
+EOS
+}
+
+
+APP_ENV=$1
+
+if [ -z $APP_ENV ]
+then
+  usage
+  exit 1
+fi
+
+
+S3_BUCKET_PATH=s3://biketag-backups
+DUMP_HOST="biketag-${APP_ENV}"
+MOST_RECENT_DUMP=`aws s3 ls $S3_BUCKET_PATH | grep $DUMP_HOST | tr -s ' ' |cut -d ' ' -f 4 | tail -n 1`
+if [ -z $MOST_RECENT_DUMP ]
+then
+  echo "unable to find dump from $DUMP_HOST"
+  exit 1
+fi
+echo "Found most recent dump: $MOST_RECENT_DUMP"
+
+aws s3 cp $S3_BUCKET_PATH/$MOST_RECENT_DUMP .
+
+echo "Unzipping $MOST_RECENT_DUMP"
+gunzip $MOST_RECENT_DUMP
+
