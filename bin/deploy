@@ -5,8 +5,8 @@ BIN_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 function usage {
   cat <<EOS
-Usage: ./$SCRIPT_NAME <connection-string> <environment>
- e.g.: ./$SCRIPT_NAME core@api.biketag-staging.jackpine.me staging
+Usage: $SCRIPT_NAME <connection-string> <environment>
+ e.g.: $SCRIPT_NAME core@api.biketag-staging.jackpine.me staging
 EOS
 }
 
