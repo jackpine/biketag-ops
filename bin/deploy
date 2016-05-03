@@ -7,38 +7,30 @@ function usage {
   cat <<EOS
 Usage: $SCRIPT_NAME <connection-string> <environment>
  e.g.: $SCRIPT_NAME core@api.biketag-staging.jackpine.me staging
+
+You can deploy against a local docker-machine, but make sure you have the auth keys
+ e.g.: ssh-add ~/.docker/machine/machines/default/id_rsa
+ e.g.: $SCRIPT_NAME docker@\`docker-machine ip\` development
 EOS
 }
 
 # Must be absolute path
-REMOTE_OPS_DIR=/home/core/biketag-ops
+REMOTE_OPS_DIR=~/biketag-ops
 
 function provision {
-  ENVIRONMENT=$1
 
-  if [ -z $ENVIRONMENT ]
+  USE_LOCAL_IMAGES=$1
+  if [ ! -z $USE_LOCAL_IMAGES ]
   then
-    usage
-    exit 1
+    if [ ! "$USE_LOCAL_IMAGES" = "--use-local-images" ]
+    then
+      echo "Unexpected argument: $1"
+      echo "I only know how to handle the --use-local-images argument"
+      exit 1
+    fi
   fi
 
-  REMOTE_OPS_DIR=$2
-  if [ -z $REMOTE_OPS_DIR ]
-  then
-    echo "Unable to determine REMOTE_OPS_DIR."
-    exit 1
-  fi
-
-  ENV_FILE_PATH=$3
-  if [ -z $ENV_FILE_PATH ]
-  then
-    echo "Unable to determine ENV_FILE_PATH."
-    exit 1
-  fi
-
-  echo "Ensuring latest ops pacakge is installed..."
-  (cd $REMOTE_OPS_DIR && git pull)
-
+  echo "<biketag-db>"
   docker ps -a | grep biketag-db > /dev/null
   DB_ALREADY_DEPLOYED=$?
   if [ $DB_ALREADY_DEPLOYED -eq 0 ]
@@ -46,41 +38,64 @@ function provision {
     echo "Database previously deployed."
     docker start biketag-db > /dev/null
   else
-    echo "Deploying new database container. If this isn't a first time deploy, something is fishy."
+    echo "Deploying new database container. If this isn't a first time deploy, something is fishy... abort now?"
+    sleep 3
     docker run --name biketag-db -d mdillon/postgis > /dev/null
   fi
+  echo "</biketag-db>"
 
-  echo "Pulling latest api container."
-  docker pull jackpine/biketag-api > /dev/null
+  echo "<biketag-api>"
+
+  if [ $USE_LOCAL_IMAGES ]
+  then
+    echo "Using local images, skipping pull."
+  else
+    echo "Pulling latest api container."
+    docker pull jackpine/biketag-api > /dev/null
+  fi
 
   echo "Removing any pre-existing api container."
   docker stop biketag-api > /dev/null
   docker rm biketag-api > /dev/null
 
   echo "Running new api container."
-  docker run --name biketag-api --link biketag-db:biketag-db -p 443:443 -p 80:80 -d jackpine/biketag-api
-
-  echo "Copying config."
-  docker exec -i biketag-api bash -c "cat - > ~app/biketag-api/.env" < $REMOTE_OPS_DIR/$ENV_FILE_PATH
-
-  echo "Installing SSL certificates"
-  $REMOTE_OPS_DIR/bin/install-ssl
-
-  echo "Restarting container."
-  docker stop biketag-api
-  docker start biketag-api
+  docker run --name biketag-api \
+             --link biketag-db:biketag-db \
+             -v /etc/secrets/biketag-api:/etc/secrets:ro \
+             -p 443:443 \
+             -p 80:80 \
+             -d jackpine/biketag-api
+  echo "</biketag-api>"
 
 }
 
 if [ "$#" == 2 ]
 then
+
   HOST=$1
   ENVIRONMENT=$2
-  ENV_FILE_PATH=secrets/biketag-$ENVIRONMENT-api.env
   echo "Remote deploying ${ENVIRONMENT} to ${HOST}."
 
-  scp $BIN_DIR/../$ENV_FILE_PATH $HOST:$REMOTE_OPS_DIR/$ENV_FILE_PATH
-  ssh -A $HOST "$(typeset -f); provision $ENVIRONMENT $REMOTE_OPS_DIR $ENV_FILE_PATH"
+  CONTAINER_CONFIG_DIR=$BIN_DIR/../secrets/per_container/biketag-$ENVIRONMENT-api
+  if [ ! -e $CONTAINER_CONFIG_DIR ]
+  then
+    echo "Unable to find container config: $CONTAINER_CONFIG_DIR"
+    echo "exiting..."
+    exit 1
+  fi
+
+  printf "Copying secrets to docker host..."
+  rsync --rsync-path='sudo rsync' -a --delete $CONTAINER_CONFIG_DIR/ $HOST:/etc/secrets/biketag-api
+  echo "Done!"
+
+  if [[ $HOST =~ "`docker-machine ip`" ]]
+  then
+    echo "Local docker deploy detected. Specifying deploy to use local images."
+    PROVISION_ARGS="--use-local-images"
+  fi
+
+  echo "Provisioning docker containers..."
+  ssh $HOST "$(typeset -f); provision $PROVISION_ARGS"
 else
   usage
   exit 1
