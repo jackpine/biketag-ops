@@ -85,6 +85,7 @@ then
   fi
 
   printf "Copying secrets to docker host..."
+  ssh $HOST sudo mkdir -p /etc/secrets
   rsync --rsync-path='sudo rsync' -a --delete $CONTAINER_CONFIG_DIR/ $HOST:/etc/secrets/biketag-api
   echo "Done!"
 
