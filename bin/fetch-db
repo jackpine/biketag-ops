@@ -1,4 +1,5 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bash -e
+
 SCRIPT_NAME=`basename "$0"`
 
 function usage {
