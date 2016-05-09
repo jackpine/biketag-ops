@@ -1,0 +1,36 @@
+#!/usr/bin/env bash -e
+
+function usage {
+  cat <<EOS
+Bundles SSL certificates
+Usage: $0
+EOS
+}
+
+if [ ! -z $1 ]
+then
+  usage
+  exit 1
+fi
+
+CERTIFICATE_DIR=~/biketag-ops/secrets/ssl/api.biketag.jackpine.me
+CERTIFICATE_BUNDLE_PATH=${CERTIFICATE_DIR}/api_biketag_jackpine_me_bundle.crt
+
+# Build the bundle.
+# Order of concatenation is essential here.
+CERTIFICATE_BUNDLE_FILES="${CERTIFICATE_DIR}/crt/api_biketag_jackpine_me.crt \
+    ${CERTIFICATE_DIR}/crt/COMODORSADomainValidationSecureServerCA.crt \
+    ${CERTIFICATE_DIR}/crt/COMODORSAAddTrustCA.crt \
+    ${CERTIFICATE_DIR}/crt/AddTrustExternalCARoot.crt"
+
+for file in $CERTIFICATE_BUNDLE_FILES
+do
+  if [ ! -e $file ]
+  then
+    echo "Couldn't find certificate file: ${file}"
+    exit 1
+  fi
+done
+
+echo 'Bundling certificates.'
+cat $CERTIFICATE_BUNDLE_FILES > $CERTIFICATE_BUNDLE_PATH

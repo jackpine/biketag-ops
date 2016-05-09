@@ -1,7 +1,8 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bash -e
+
 set -x
 BIN_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-TARGET=$BIN_DIR/../../api/public/uploads
+TARGET=$BIN_DIR/../../backups
 
-s3cmd sync s3://biketag-production/spots $TARGET
-s3cmd sync s3://biketag-production/guesses $TARGET
+aws s3 sync s3://biketag-production/spots $TARGET/spots
+aws s3 sync s3://biketag-production/guesses $TARGET/guesses
