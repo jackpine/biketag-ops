@@ -77,17 +77,21 @@ then
   ENVIRONMENT=$2
   echo "Remote deploying ${ENVIRONMENT} to ${HOST}."
 
-  CONTAINER_CONFIG_DIR=$BIN_DIR/../secrets/per_container/biketag-$ENVIRONMENT-api
-  if [ ! -e $CONTAINER_CONFIG_DIR ]
+  CONTAINER_SECRETS_DIR=${BIN_DIR}/../secrets/per_container
+  API_SECRETS_DIR=${CONTAINER_SECRETS_DIR}/biketag-$ENVIRONMENT-api
+  DB_BACKUP_SECRETS_DIR=${CONTAINER_SECRETS_DIR}/biketag-db-backups
+
+  if [ ! -e $CONTAINER_SECRETS_DIR ]
   then
-    echo "Unable to find container config: $CONTAINER_CONFIG_DIR"
+    echo "Unable to find container config: $CONTAINER_SECRETS_DIR"
     echo "exiting..."
     exit 1
   fi
 
   printf "Copying secrets to docker host..."
   ssh $HOST sudo mkdir -p /etc/secrets
-  rsync --rsync-path='sudo rsync' -a --delete $CONTAINER_CONFIG_DIR/ $HOST:/etc/secrets/biketag-api
+  rsync --rsync-path='sudo rsync' -a --delete $API_SECRETS_DIR/ $HOST:/etc/secrets/biketag-api
+  rsync --rsync-path='sudo rsync' -a --delete $DB_BACKUP_SECRETS_DIR/ $HOST:/etc/secrets/biketag-db-backups
   echo "Done!"
 
   if [[ $HOST =~ "`docker-machine ip`" ]]
