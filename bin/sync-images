@@ -1,5 +1,5 @@
-#!/usr/bin/env bash -e
-
+#!/usr/bin/env bash
+set -e
 set -x
 BIN_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 TARGET=$BIN_DIR/../../backups
