@@ -15,9 +15,6 @@ You can deploy against a local docker-machine, but make sure you have the auth k
 EOS
 }
 
-# Must be absolute path
-REMOTE_OPS_DIR=~/biketag-ops
-
 function provision {
 
   USE_LOCAL_IMAGES=$1
@@ -102,6 +99,8 @@ then
 
   echo "Provisioning docker containers..."
   ssh $HOST "$(typeset -f); provision $PROVISION_ARGS"
+
+  echo "Done deploying. Don't forget to run check-health for the appropriate endpoint!"
 else
   usage
   exit 1

@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+set -e
+
+SCRIPT_NAME=`basename "$0"`
+BIN_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+
+function usage {
+  cat <<EOS
+Verify basic health of app, ensure it is accessible and communicating with it's database.
+
+Usage: $SCRIPT_NAME <api-origin>
+ e.g.: $SCRIPT_NAME https://api.biketag.jackpine.me
+ e.g.: $SCRIPT_NAME http://api.biketag-staging.jackpine.me
+ e.g.: $SCRIPT_NAME http://localhost:3000
+EOS
+}
+
+API_ORIGIN=$1
+
+if [ -z $API_ORIGIN ]
+then
+  echo "Missing origin."
+  echo ""
+  usage
+  exit 1
+fi
+
+if [ $(curl $API_ORIGIN/health_report | grep '"all_systems_normal":true') ]
+then
+  echo ""
+  echo "[OK] ${API_ORIGIN} is up! ^_^"
+  exit 0
+else
+  echo ""
+  echo "[FAIL] ${API_ORIGIN} is down! =("
+  exit 1
+fi
+
