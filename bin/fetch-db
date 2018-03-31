@@ -5,8 +5,8 @@ SCRIPT_NAME=`basename "$0"`
 
 function usage {
   cat <<EOS
-Usage: ./$SCRIPT_NAME <environment>
- e.g.: ./$SCRIPT_NAME staging
+Usage: ./$SCRIPT_NAME <hostname>
+ e.g.: ./$SCRIPT_NAME redpine
 EOS
 }
 
