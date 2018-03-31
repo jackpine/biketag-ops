@@ -30,8 +30,8 @@ function archive_db {
 
   DATE=`date +%Y%m%d`
   HOSTNAME=`hostname`
-  DUMP_FILE="${DATABASE_NAME}-${HOSTNAME}-${DATE}.sql.gz"
-  docker exec biketag-db bash -c "pg_dump --username postgres $DATABASE_NAME" | gzip -c > /tmp/$DUMP_FILE
+  DUMP_FILE="${DATABASE_NAME}-${HOSTNAME}-${DATE}.sql.xz"
+  docker exec biketag-db bash -c "pg_dump --username postgres $DATABASE_NAME" | xz > /tmp/$DUMP_FILE
   upload $DUMP_FILE
   rm /tmp/$DUMP_FILE
 }

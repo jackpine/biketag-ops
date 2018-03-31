@@ -1,5 +1,15 @@
-After deploying (bin/deploy) copy the systemd service files to the
-docker host to make sure the containers start at boot.
+After deploying (bin/deploy)
+
+# Ops
+
+Clone the ops repo, which some services rely on. Though I think it's
+just the backup script. Maybe we could just copy that to simplify
+things.
+
+# Services
+
+copy the systemd service files to the docker host to make sure the
+containers start at boot.
 
     # pseudo code
     scp services/* /etc/systemd/system
