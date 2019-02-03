@@ -6,19 +6,19 @@ BIN_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 source /etc/secrets/biketag-renew-assets-cert/env
 # source $BIN_DIR/../secrets/per_container/biketag-renew-assets-cert/env
 
-if [ -z $AWS_KEY_ID ]
+if [ -z $AWS_ACCESS_KEY_ID ]
 then
-  echo "must specify AWS_KEY_ID"
+  echo "must specify AWS_ACCESS_KEY_ID"
   exit 1
 fi
 
-if [ -z $AWS_SECRET_KEY ]
+if [ -z $AWS_SECRET_ACCESS_KEY ]
 then
-  echo "must specify AWS_SECRET_KEY"
+  echo "must specify AWS_SECRET_ACCESS_KEY"
   exit 1
 fi
 
-if [ -z $S3_BUCKET ]
+if [ -z $S3_BUCKET_NAME ]
 then
   echo "must specify S3_BUCKET"
   exit 1
