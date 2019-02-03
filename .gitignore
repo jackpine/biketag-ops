@@ -1,3 +1,3 @@
-secrets/*
-!secrets/*.gpg
+secrets/**
+!secrets/**.gpg
 *.sql
