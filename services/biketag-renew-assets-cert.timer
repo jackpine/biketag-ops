@@ -2,7 +2,7 @@
 Description=Run BikeTag Daily Cert Renewal
 
 [Timer]
-OnCalendar=daily
+OnCalendar=weekly
 Persistent=true
 
 [Install]
