@@ -3,8 +3,8 @@ set -e
 
 BIN_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
-# source /etc/secrets/biketag-renew-assets-cert/env
-source $BIN_DIR/../secrets/per_container/biketag-renew-assets-cert/env
+source /etc/secrets/biketag-renew-assets-cert/env
+# source $BIN_DIR/../secrets/per_container/biketag-renew-assets-cert/env
 
 if [ -z $AWS_KEY_ID ]
 then
