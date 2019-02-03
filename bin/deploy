@@ -15,6 +15,17 @@ You can deploy against a local docker-machine, but make sure you have the auth k
 EOS
 }
 
+# Maybe this should be a separate script...
+# Not currently run, but included as documentation
+function provision_debian {
+  # used to copy over secrets
+  apt install rsync
+
+  # install docker
+  # on debian, docker is maintained in a separate repository.
+  # https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-debian-9
+}
+
 function provision {
 
   USE_LOCAL_IMAGES=$1

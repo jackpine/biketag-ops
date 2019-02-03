@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+set -e
+
+BIN_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+
+# source /etc/secrets/biketag-renew-assets-cert/env
+source $BIN_DIR/../secrets/per_container/biketag-renew-assets-cert/env
+
+if [ -z $AWS_KEY_ID ]
+then
+  echo "must specify AWS_KEY_ID"
+  exit 1
+fi
+
+if [ -z $AWS_SECRET_KEY ]
+then
+  echo "must specify AWS_SECRET_KEY"
+  exit 1
+fi
+
+if [ -z $S3_BUCKET ]
+then
+  echo "must specify S3_BUCKET"
+  exit 1
+fi
+
+if [ -z $S3_BUCKET_REGION ]
+then
+  echo "must specify S3_BUCKET_REGION"
+  exit 1
+fi
+
+if [ -z $DOMAIN_NAME ]
+then
+  echo "must specify DOMAIN_NAME"
+  exit 1
+fi
+
+if [ -z $CLOUDFRONT_DISTRIBUTION_ID ]
+then
+  echo "must specify CLOUDFRONT_DISTRIBUTION_ID"
+  exit 1
+fi
+
+# Could add this argument
+# S3_BUCKET_DIR=''
+#  --certbot-s3front:auth-s3-directory "${S3_BUCKET_DIR}" \
+
+certbot --agree-tos -a certbot-s3front:auth \
+  --certbot-s3front:auth-s3-bucket "${S3_BUCKET_NAME}" \
+  --certbot-s3front:auth-s3-region "${S3_BUCKET_REGION}" \
+  -i certbot-s3front:installer \
+  --certbot-s3front:installer-cf-distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" \
+  -d "${DOMAIN_NAME}"
+
