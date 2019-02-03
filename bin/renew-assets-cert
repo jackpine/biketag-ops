@@ -51,5 +51,7 @@ certbot --agree-tos -a certbot-s3front:auth \
   --certbot-s3front:auth-s3-region "${S3_BUCKET_REGION}" \
   -i certbot-s3front:installer \
   --certbot-s3front:installer-cf-distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" \
-  -d "${DOMAIN_NAME}"
+  -d "${DOMAIN_NAME}" \
+  --renew-by-default \
+  --text
 
