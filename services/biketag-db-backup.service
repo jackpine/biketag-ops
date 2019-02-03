@@ -3,5 +3,5 @@ Description=BikeTag DB Backup
 
 [Service]
 TimeoutStartSec=0
-ExecStart=/home/core/biketag-ops/bin/archive-db 
+ExecStart=/usr/local/bin/biketag-archive-db 
 

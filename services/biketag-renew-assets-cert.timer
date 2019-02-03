@@ -1,0 +1,9 @@
+[Unit]
+Description=Run BikeTag Daily Cert Renewal
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=timers.target
