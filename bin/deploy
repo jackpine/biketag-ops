@@ -6,13 +6,79 @@ BIN_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 function usage {
   cat <<EOS
-Usage: $SCRIPT_NAME <connection-string> <environment>
+Usage: $SCRIPT_NAME --host <connection-string> <environment>
  e.g.: $SCRIPT_NAME core@api.biketag-staging.jackpine.me staging
+
+   or: $SCRIPT_NAME --is-local <environment>
+ e.g.: $SCRIPT_NAME --is-local staging
 
 You can deploy against a local docker-machine, but make sure you have the auth keys
  e.g.: ssh-add ~/.docker/machine/machines/default/id_rsa
  e.g.: $SCRIPT_NAME docker@\`docker-machine ip\` development
 EOS
+}
+
+function invalid_arg() { 
+    printf "ERROR: %s\n" "$*" >&2; 
+    usage
+    exit 1; 
+}
+
+function main() {
+    function parse_args() {
+        while (( "$#" )); do
+            case "$1" in
+                -l|--is-local)
+                    IS_LOCAL=1
+                    shift 1
+                    ;;
+                -h|--host)
+                    HOST=$2
+                    if [[ -z "$HOST" ]]; then
+                        invalid_arg "must specify host"
+                    fi
+                    shift 2
+                    ;;
+                --) # end argument parsing
+                    shift
+                    break
+                    ;;
+                -*|--*=) # unsupported flags
+                    echo "Error: Unsupported flag $1" >&2
+                    exit 1
+                    ;;
+                *) # preserve positional arguments
+                    PARAMS="$PARAMS $1"
+                    shift
+                    ;;
+            esac
+        done
+
+        # set positional arguments in their proper place
+        eval set -- "$PARAMS"
+
+        if [[ -z "$HOST" ]]; then
+            if [[ -z "$IS_LOCAL" ]]; then
+                invalid_arg "must specify either --local or --host <hostname>"
+            fi
+        fi
+
+        if [[ ! -z "$HOST" ]]; then
+            if [[ ! -z "$IS_LOCAL" ]]; then
+                invalid_arg "cannot specify both --local and --host <hostname>"
+            fi
+        fi
+    }
+
+    parse_args $@
+
+    if [[ $IS_LOCAL ]]; then
+        deploy_local $PARAMS
+    fi
+
+    if [[ $HOST ]]; then
+        deploy_remote $HOST $PARAMS
+    fi
 }
 
 # Maybe this should be a separate script...
@@ -27,92 +93,169 @@ function provision_debian {
 }
 
 function provision {
+    function parse_args() {
+        while (( "$#" )); do
+            case "$1" in
+                --api-secrets-dir)
+                    API_SECRETS_DIR=$2
+                    if [[ -z "$API_SECRETS_DIR" ]]; then
+                        invalid_arg "must provide path with --api-secrets-dir, e.g. --api-secrets-dir path/to/dir"
+                    fi
+                    shift 2
+                    ;;
+                -p|--port)
+                    API_PORT=$2
+                    if [[ -z "$API_PORT" ]]; then
+                        invalid_arg "must provide port number with --port, e.g. --port 8080"
+                    fi
+                    shift 2
+                    ;;
+                --db-backups-secrets-dir)
+                    DB_BACKUP_SECRETS_DIR=$2
+                    if [[ -z "$DB_BACKUP_SECRETS_DIR" ]]; then
+                        invalid_arg "must provide path with --db-backup-secrets-dir, e.g. --db-backup-secrets-dir path/to/dir"
+                    fi
+                    shift 2
+                    ;;
+                --use-local-images)
+                  USE_LOCAL_IMAGES=1
+                  shift 1
+                  ;;
+                --) # end argument parsing
+                    shift
+                    break
+                    ;;
+                -*|--*=) # unsupported flags
+                    echo "Error: Unsupported flag $1" >&2
+                    exit 1
+                    ;;
+                *) # preserve positional arguments
+                    PARAMS="$PARAMS $1"
+                    shift
+                    ;;
+            esac
+        done
 
-  USE_LOCAL_IMAGES=$1
-  if [ ! -z $USE_LOCAL_IMAGES ]
-  then
-    if [ ! "$USE_LOCAL_IMAGES" = "--use-local-images" ]
+      # set positional arguments in their proper place
+      eval set -- "$PARAMS"
+
+      if [[ -z "$API_SECRETS_DIR" ]]; then
+        invalid_arg "must specify --api-secrets-dir path/to/dir"
+      fi
+
+      if [[ -z "$API_PORT" ]]; then
+        invalid_arg "must specify --port <number>"
+      fi
+    }
+    parse_args $@
+
+    echo "<biketag-db>"
+    docker ps -a | grep biketag-db > /dev/null
+    DB_ALREADY_DEPLOYED=$?
+    if [ $DB_ALREADY_DEPLOYED -eq 0 ]
     then
-      echo "Unexpected argument: $1"
-      echo "I only know how to handle the --use-local-images argument"
-      exit 1
+        echo "Database previously deployed."
+        docker start biketag-db > /dev/null
+    else
+        echo "Deploying new database container. If this isn't a first time deploy, something is fishy... abort now?"
+        sleep 3
+        docker run --name biketag-db -d mdillon/postgis > /dev/null
     fi
-  fi
+    echo "</biketag-db>"
 
-  echo "<biketag-db>"
-  docker ps -a | grep biketag-db > /dev/null
-  DB_ALREADY_DEPLOYED=$?
-  if [ $DB_ALREADY_DEPLOYED -eq 0 ]
-  then
-    echo "Database previously deployed."
-    docker start biketag-db > /dev/null
-  else
-    echo "Deploying new database container. If this isn't a first time deploy, something is fishy... abort now?"
-    sleep 3
-    docker run --name biketag-db -d mdillon/postgis > /dev/null
-  fi
-  echo "</biketag-db>"
+    echo "<biketag-api>"
 
-  echo "<biketag-api>"
+    if [ $USE_LOCAL_IMAGES ]
+    then
+        echo "Using local images, skipping pull."
+    else
+        echo "Pulling latest api container."
+        docker pull jackpine/biketag-api > /dev/null
+    fi
 
-  if [ $USE_LOCAL_IMAGES ]
-  then
-    echo "Using local images, skipping pull."
-  else
-    echo "Pulling latest api container."
-    docker pull jackpine/biketag-api > /dev/null
-  fi
+    if docker ps -a | grep biketag-api > /dev/null; then 
+        echo "Removing pre-existing api container."
+        docker stop biketag-api > /dev/null
+        docker rm biketag-api > /dev/null
+    else
+        echo "No pre-existing api container."
+    fi
 
-  echo "Removing any pre-existing api container."
-  docker stop biketag-api > /dev/null
-  docker rm biketag-api > /dev/null
+    echo "Running new api container."
+    docker run --name biketag-api \
+        --link biketag-db:biketag-db \
+        -v $API_SECRETS_DIR:/etc/secrets:ro \
+        -p 443:443 \
+        -p $API_PORT:80 \
+        -d jackpine/biketag-api
 
-  echo "Running new api container."
-  docker run --name biketag-api \
-             --link biketag-db:biketag-db \
-             -v /etc/secrets/biketag-api:/etc/secrets:ro \
-             -p 443:443 \
-             -p 80:80 \
-             -d jackpine/biketag-api
-  echo "</biketag-api>"
-
+    echo "</biketag-api>"
 }
 
-if [ "$#" == 2 ]
-then
+function deploy_remote() {
+    if [ "$#" != 2 ]; then
+        invalid_arg "bad args to deploy_remote"
+        exit 1
+    fi
 
-  HOST=$1
-  ENVIRONMENT=$2
-  echo "Remote deploying ${ENVIRONMENT} to ${HOST}."
+    HOST=$1
+    ENVIRONMENT=$2
+    echo "Remote deploying ${ENVIRONMENT} to ${HOST}."
 
-  CONTAINER_SECRETS_DIR=${BIN_DIR}/../secrets/per_container
-  API_SECRETS_DIR=${CONTAINER_SECRETS_DIR}/biketag-$ENVIRONMENT-api
-  DB_BACKUP_SECRETS_DIR=${CONTAINER_SECRETS_DIR}/biketag-db-backups
+    CONTAINER_SECRETS_DIR=${BIN_DIR}/../secrets/per_container
+    API_SECRETS_DIR=${CONTAINER_SECRETS_DIR}/biketag-$ENVIRONMENT-api
+    DB_BACKUP_SECRETS_DIR=${CONTAINER_SECRETS_DIR}/biketag-db-backups
 
-  if [ ! -e $CONTAINER_SECRETS_DIR ]
-  then
-    echo "Unable to find container config: $CONTAINER_SECRETS_DIR"
-    echo "exiting..."
-    exit 1
-  fi
+    if [ ! -e $CONTAINER_SECRETS_DIR ]
+    then
+        echo "Unable to find container config: $CONTAINER_SECRETS_DIR"
+        echo "exiting..."
+        exit 1
+    fi
 
-  printf "Copying secrets to docker host..."
-  ssh $HOST sudo mkdir -p /etc/secrets
-  rsync --rsync-path='sudo rsync' -a --delete $API_SECRETS_DIR/ $HOST:/etc/secrets/biketag-api
-  rsync --rsync-path='sudo rsync' -a --delete $DB_BACKUP_SECRETS_DIR/ $HOST:/etc/secrets/biketag-db-backups
-  echo "Done!"
+    printf "Copying secrets to docker host..."
+    ssh $HOST sudo mkdir -p /etc/secrets
+    rsync --rsync-path='sudo rsync' -a --delete $API_SECRETS_DIR/ $HOST:/etc/secrets/biketag-api
+    rsync --rsync-path='sudo rsync' -a --delete $DB_BACKUP_SECRETS_DIR/ $HOST:/etc/secrets/biketag-db-backups
+    echo "Done!"
 
-  if [[ $HOST =~ "`docker-machine ip`" ]]
-  then
-    echo "Local docker deploy detected. Specifying deploy to use local images."
-    PROVISION_ARGS="--use-local-images"
-  fi
+    if [[ $HOST =~ "`docker-machine ip`" ]]
+    then
+        echo "Local docker deploy detected. Specifying deploy to use local images."
+        PROVISION_ARGS="--use-local-images"
+    fi
 
-  echo "Provisioning docker containers..."
-  ssh $HOST "$(typeset -f); provision $PROVISION_ARGS"
+    echo "Provisioning docker containers..."
+    # XXX This --foo-secrets-dir stuff isn't tested on remote deploys yet, but I'm hoping I'm done with remote deploys...
+    ssh $HOST "$(typeset -f); provision $PROVISION_ARGS --api-secrets-dir /etc/secrets/biketag-api --db-backup-secrets-dir /etc/secrets/biketag-db-backups"
 
-  echo "Done deploying. Don't forget to run check-health for the appropriate endpoint!"
-else
-  usage
-  exit 1
-fi
+    echo "Done deploying. Don't forget to run check-health for the appropriate endpoint!"
+}
+
+
+function deploy_local() {
+    echo "1: $1"
+    if [ "$#" != 1 ]; then
+      invalid_arg "bad args to deploy_local: $@"
+      exit 1
+    fi
+
+    ENVIRONMENT=$1
+    echo "Locally deploying ${ENVIRONMENT}."
+
+    CONTAINER_SECRETS_DIR=${BIN_DIR}/../secrets/per_container
+    SRC_API_SECRETS_DIR=${CONTAINER_SECRETS_DIR}/biketag-$ENVIRONMENT-api
+
+    if [ ! -e $SRC_API_SECRETS_DIR ]; then
+        echo "Unable to find api secrets dir: $SRC_API_SECRETS_DIR"
+        echo "exiting..."
+        exit 1
+    fi
+
+    echo "Provisioning docker containers..."
+    provision --api-secrets-dir $SRC_API_SECRETS_DIR --port 8080
+
+    echo "Done deploying. Don't forget to run check-health for the appropriate endpoint!"
+}
+
+main $@
