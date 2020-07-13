@@ -3,7 +3,7 @@ set -e
 
 BIN_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
-source /etc/secrets/biketag-db-backups/env
+source .env
 # source $BIN_DIR/../secrets/per_container/biketag-db-backups/env
 
 if [ -z $S3_BUCKET ]
