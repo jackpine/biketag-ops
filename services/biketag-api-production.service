@@ -1,0 +1,15 @@
+[Unit]
+Description=BikeTag Production API
+After=network.target
+Requires=biketag-db.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=biketag-production
+WorkingDirectory=/home/biketag-production/biketag-api
+ExecStart=/home/biketag-production/biketag-api/bin/latest/api-server
+
+[Install]
+WantedBy=multi-user.target
