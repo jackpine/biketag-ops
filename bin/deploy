@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-set -e
+
+# We can't simply -e. when searching for existing db container, we get a non-zero result.
+#set -e
 
 SCRIPT_NAME=`basename "$0"`
 BIN_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
@@ -7,7 +9,7 @@ BIN_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 function usage {
   cat <<EOS
 Usage: $SCRIPT_NAME --host <connection-string> <environment>
- e.g.: $SCRIPT_NAME core@api.biketag-staging.jackpine.me staging
+ e.g.: $SCRIPT_NAME --host core@api.biketag-staging.jackpine.me staging
 
    or: $SCRIPT_NAME --is-local <environment>
  e.g.: $SCRIPT_NAME --is-local staging
@@ -187,6 +189,7 @@ function provision {
         -v $API_SECRETS_DIR:/etc/secrets:ro \
         -p 443:443 \
         -p $API_PORT:80 \
+        -e PASSENGER_ENV=developement \
         -d jackpine/biketag-api
 
     echo "</biketag-api>"
