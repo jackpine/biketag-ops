@@ -3,7 +3,7 @@ Description=BikeTag DB Backup
 
 [Service]
 TimeoutStartSec=0
-WorkingDirectory=/home/biketag-backups/biketag-archive-db
-ExecStart=/home/biketag-backups/biketag-archive-db/bin/biketag-archive-db 
 User=biketag-backups
+WorkingDirectory=/home/biketag-backups/biketag-archive-db
+ExecStart=/home/biketag-backups/biketag-archive-db/bin/archive-db
 
