@@ -1,8 +1,24 @@
 #!/usr/bin/env bash
 set -e
-set -x
+
+SCRIPT_NAME=`basename "$0"`
 BIN_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-TARGET=$BIN_DIR/../../backups
+
+function usage {
+  cat <<EOS
+Usage: $SCRIPT_NAME <env>
+ e.g.: $SCRIPT_NAME development
+EOS
+}
+
+APP_ENV=$1
+if [ -z $APP_ENV ]
+then
+    usage
+    exit 1
+fi
+
+TARGET="s3://biketag-${APP_ENV}"
 
 aws s3 sync s3://biketag-production/spots $TARGET/spots
 aws s3 sync s3://biketag-production/guesses $TARGET/guesses

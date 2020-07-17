@@ -5,8 +5,8 @@ SCRIPT_NAME=`basename "$0"`
 
 function usage {
   cat <<EOS
-Usage: ./$SCRIPT_NAME <hostname>
- e.g.: ./$SCRIPT_NAME redpine
+Usage: ./$SCRIPT_NAME <env> <hostname>
+ e.g.: ./$SCRIPT_NAME production hemlock
 EOS
 }
 
@@ -19,10 +19,17 @@ then
   exit 1
 fi
 
+APP_HOST=$2
+if [ -z $APP_HOST ]
+then
+  usage
+  exit 1
+fi
+
 
 S3_BUCKET_PATH=s3://biketag-backups
-DUMP_HOST="biketag-${APP_ENV}"
-MOST_RECENT_DUMP=`aws s3 ls $S3_BUCKET_PATH | grep $DUMP_HOST | tr -s ' ' |cut -d ' ' -f 4 | tail -n 1`
+DUMP_PREFIX="biketag_${APP_ENV}-${APP_HOST}"
+MOST_RECENT_DUMP=`aws s3 ls $S3_BUCKET_PATH $DUMP_HOST | tr -s ' ' |cut -d ' ' -f 4 | tail -n 1`
 if [ -z $MOST_RECENT_DUMP ]
 then
   echo "unable to find dump from $DUMP_HOST"

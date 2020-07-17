@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -e
+set -x
+BIN_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+TARGET=$BIN_DIR/../../backups
+
+aws s3 sync s3://biketag-production/spots $TARGET/spots
+aws s3 sync s3://biketag-production/guesses $TARGET/guesses
