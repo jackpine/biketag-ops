@@ -37,6 +37,7 @@ then
 fi
 echo "Found most recent dump: $MOST_RECENT_DUMP"
 
+# pip install awscli (not pip install aws)
 aws s3 cp $S3_BUCKET_PATH/$MOST_RECENT_DUMP .
 
 echo "Unzipping $MOST_RECENT_DUMP"
